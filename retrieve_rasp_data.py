@@ -23,8 +23,8 @@ def MyOptParser(parser):
     parser.add_option("--depth", action="store", dest="depth", default=2.0, help="Hypocenter depth (if no evid, optional)")
     parser.add_option("--mag", action="store", dest="magnitude", default=2.0, help="Earthquake magnitude (if no evid, optional)")
     parser.add_option("--length", action="store", dest="sig_length", default=120, help="Length of the signal to show in seconds [120]")
-    parser.add_option("--fmin", action="store", dest="freqmin", default=0.5, help="Bandpass low frequency [0.5]")
-    parser.add_option("--fmax", action="store", dest="freqmax", default=10.0, help="Bandpass high frequency [10.0]")
+    parser.add_option("--fmin", action="store", dest="freqmin", help="Bandpass low frequency [0.5]")
+    parser.add_option("--fmax", action="store", dest="freqmax", help="Bandpass high frequency [10.0]")
     parser.add_option("--ampmax", action="store", dest="ampmax", default=5000.0, help="Maximum amplitude to show [5000]")
     parser.add_option("--nbsta", action="store", dest="maxnbsta", default=3, help="Nb stations to show [3]")
     parser.add_option("--force", action="store_true", dest="force", default=False, help="Force requesting data instead of reading local miniseed file")
@@ -140,6 +140,8 @@ def get_data(listofstations,ev):
     alltraces=Stream()
 
     global my_phase_list
+    global freqmin
+    global freqmax
 
     ista=0
     for mysta in listofstations:
@@ -269,7 +271,18 @@ def get_data(listofstations,ev):
             ista-=1
             continue
         
-        st.filter("bandpass", freqmin=freqmin, freqmax=freqmax) 
+        if ((MyOptions.freqmin != None) & (MyOptions.freqmax == None)):
+            freqmin=float(MyOptions.freqmin)
+            freqmax=25
+            st.filter("highpass", freq=freqmin)
+        elif ((MyOptions.freqmax != None) & (MyOptions.freqmin == None)):
+            freqmin=0
+            freqmax=float(MyOptions.freqmax)
+            st.filter("lowpass", freq=float(MyOptions.freqmax))
+        else:
+            freqmin=float(MyOptions.freqmin)
+            freqmax=float(MyOptions.freqmax)
+            st.filter("bandpass", freqmin=freqmin, freqmax=freqmax) 
 
         if (len(st)>0):
             st[0].stats.coordinates = AttribDict()
@@ -365,15 +378,15 @@ if (MyOptions.sig_length != None):
 else:
     sig_length=120.0
 
-if (MyOptions.freqmin != None):
-    freqmin=float(MyOptions.freqmin)
-else:
-    freqmin=0.5
+#if (MyOptions.freqmin != None):
+    #freqmin=float(MyOptions.freqmin)
+#else:
+    #freqmin=0.5
 
-if (MyOptions.freqmax != None):
-    freqmax=float(MyOptions.freqmax)
-else:
-    freqmax=3.0
+#if (MyOptions.freqmax != None):
+    #freqmax=float(MyOptions.freqmax)
+#else:
+    #freqmax=10.0
 
 if (MyOptions.ampmax != None):
     ampmax=float(MyOptions.ampmax)
