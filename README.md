@@ -1,2 +1,3 @@
 # Rasberryshake
-Few python code to extract to view Raspberryshake data
+Few python code to extract and view Raspberryshake data
+
