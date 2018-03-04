@@ -271,7 +271,11 @@ def get_data(listofstations,ev):
             ista-=1
             continue
         
-        if ((MyOptions.freqmin != None) & (MyOptions.freqmax == None)):
+        if ((MyOptions.freqmin == None) & (MyOptions.freqmax == None)):
+            freqmin=0.0
+            freqmax=25.0
+            #st.filter("highpass", freq=freqmin)
+        elif ((MyOptions.freqmin != None) & (MyOptions.freqmax == None)):
             freqmin=float(MyOptions.freqmin)
             freqmax=25
             st.filter("highpass", freq=freqmin)
@@ -400,7 +404,7 @@ else:
 
 
 print "import obspy ..."
-from numpy import array,argsort,vstack
+from numpy import array,argsort
 from obspy.core.utcdatetime import UTCDateTime
 from obspy.geodetics import gps2dist_azimuth
 print "done"
@@ -423,8 +427,6 @@ for line in fsta:
     #if (i>10):
     #    break
 fsta.close()
-
-
 
 """
 # Add CLF
@@ -466,7 +468,6 @@ OT=UTCDateTime(ev.OT)
 print "OT:",OT
 
 from obspy import Stream
-#from obspy.taup import plot_travel_times
 from obspy.core import read, AttribDict
 from obspy.taup import TauPyModel
 model=TauPyModel(model='ak135')
@@ -477,13 +478,14 @@ if (MyOptions.fr):
 else:
     allsta,arrtimes,alltraces=get_data(STATION,ev)
 
-print 
-mytitle="EVID %d - M%3.1f %s on %s (Lat: %.2f; Lon: %.2f; Z: %dkm)" % (evid,ev.mag,ev.region,str(OT)[0:21],ev.lat,ev.lon,ev.depth)
-
+# ------------------------------------------------------
+print "Plot ..."
 print "import matplotlib"
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 import matplotlib.dates as dates
+
+mytitle="EVID %d - M%3.1f %s on %s (Lat: %.2f; Lon: %.2f; Z: %dkm)" % (evid,ev.mag,ev.region,str(OT)[0:21],ev.lat,ev.lon,ev.depth)
 
 fig2=plt.figure(figsize=[12,8])
 
@@ -520,21 +522,6 @@ else:
     NEWXLIM=((XLIM[0], XLIM[0] + sig_length/60/1440))
 
 
-"""
-# SPECTROGRAM only for RASP station
-from obspy.imaging.spectrogram import spectrogram
-from pylab import rcParams
-rcParams['figure.figsize'] = 12, 8
-fig_spec=st.spectrogram(per_lap=0.85, samp_rate=50, wlen=5, show=False, log=False, title='TEST')
-axes_spec=fig_spec[0].get_axes()
-axes_spec[0].set_ylim(0.1,3)
-axes_spec[0].set_xlim(0,sig_length)
-axes_spec[0].set_position(REFPOS)
-#fig_spec[0].tight_layout(rect=(0,0,1,0.95))
-"""
-
-
-print "---"
 print
 i=0
 for trace in alltraces:
@@ -557,7 +544,6 @@ for trace in alltraces:
     plt.setp(labelx, rotation=30, fontsize=9)
 
     Ymax=min (max(trace.data)*1.01,ampmax) # 5000 max
-    #Ymax=max(trace.data)*1.01
     ystep=max ((int(Ymax/1000)+1)*1000/2,100)
     Ymaxunit=len(str(int(Ymax)))
     Ymaxsize=str(int(Ymax))[0]
@@ -568,7 +554,6 @@ for trace in alltraces:
     labely = axes[i].get_yticklabels()
     plt.setp(labely, fontsize=9)
 
-    ##model=TauPyModel()
     arrivals = model.get_travel_times(source_depth_in_km=ev.depth, distance_in_degree=allsta[tr.station].epidist_deg, phase_list=my_phase_list)
     arrtimes[tr.station]=[]
     for arr in arrivals:
@@ -579,9 +564,7 @@ for trace in alltraces:
         if (pick[0] in phases_done):
             continue
         phases_done.append(pick[0])
-        #phase_pick= datetime.datetime.strptime(pick[1], '%Y-%m-%d %H:%M:%S.%f')
         phase_pick=pick[1]
-        #print phase_pick
         x=[phase_pick,phase_pick]
         y=[-Ymax,0]
         axes[i].plot(x,y)
@@ -593,12 +576,8 @@ for trace in alltraces:
 
     i=i+1
 
-
-#mytitle="EVID %d - M%3.1f %s on %s (Lat: %.2f; Lon: %.2f; Z: %dkm)" % (evid,ev.mag,ev.region,str(OT)[0:21],ev.lat,ev.lon,ev.depth)
 fig2.suptitle(mytitle,fontsize=11)
-
-#plt.tight_layout(pad=0.5,rect=(0.05,0.05,0.95,0.95))
-fig2.tight_layout(rect=(0,0,1,0.95))
+fig2.tight_layout(pad=0.5,rect=(0,0,1,0.95))
 
 png="%s/%d.png" % (DATADIR,evid)
 plt.savefig(png)
