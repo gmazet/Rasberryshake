@@ -283,6 +283,9 @@ def get_data(listofstations,ev):
             freqmin=0
             freqmax=float(MyOptions.freqmax)
             st.filter("lowpass", freq=float(MyOptions.freqmax))
+        elif ((MyOptions.freqmax == None) & (MyOptions.freqmin == None)):
+            freqmin=0
+            freqmax=25
         else:
             freqmin=float(MyOptions.freqmin)
             freqmax=float(MyOptions.freqmax)
