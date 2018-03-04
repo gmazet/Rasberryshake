@@ -167,6 +167,7 @@ model=TauPyModel(model='ak135')
 
 from obspy.clients.fdsn import Client as FDSN
 if (MyOptions.fr):
+    maxnbsta=min(len(FR_STATIONS),maxnbsta)
     phaseslist,allsta,arrtimes,alltraces=get_data(FR_STATIONS,ev,model, MyOptions, maxnbsta)
 else:
     phaseslist,allsta,arrtimes,alltraces=get_data(CLOSE_STATIONS,ev,model, MyOptions, maxnbsta)

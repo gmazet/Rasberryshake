@@ -1,8 +1,8 @@
 from myutils import *
 
 french_stations=['R9F1B','RE4C0','R57C7','R0B29','RA3B7']
-french_stations=['R9F1B','RE4C0']
 french_stations=['R9F1B','R0B29','RA3B7']
+french_stations=['R9F1B','R57C7']
 NODATA=('R6E96','R052F','R1FBA','RB511','SFD6B', 'RA70D','R9DA3','R5661','RE7F9','R9DBD','R3F3B')
 
 STATIONBOOK="%s/stations_raspberryshake.txt" % DATADIR

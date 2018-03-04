@@ -1,11 +1,12 @@
-print "Plot ..."
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 import matplotlib.dates as dates
 import datetime
 from myutils import DATADIR
 
+
 def matplotlib_plot(ev, phaseslist, allsta, arrtimes, alltraces, model, options):
+    print "plot ..."
     mytitle="EVID %d - M%3.1f %s on %s (Lat: %.2f; Lon: %.2f; Z: %dkm)" % (ev.evid,ev.mag,ev.region,str(ev.OTutc)[0:21],ev.lat,ev.lon,ev.depth)
 
     fig2=plt.figure(figsize=[12,8])
@@ -100,16 +101,19 @@ def matplotlib_plot(ev, phaseslist, allsta, arrtimes, alltraces, model, options)
     plt.show()
 
 def bokeh_plot(ev, phaseslist, allsta, arrtimes, alltraces, model, options):
-    from bokeh.plotting import figure, output_file, show
+    print "plot ..."
+    from bokeh.plotting import figure, output_file, show, save
     from bokeh.layouts import column
-    from bokeh.sampledata.stocks import AAPL
     from bokeh.models import DatetimeTickFormatter
     import pandas as pd
-    import numpy as np
+    from numpy import asarray,pi
     import time
     from calendar import timegm
 
     figs=[]
+
+    TOOLS="hover,crosshair,pan,wheel_zoom,zoom_in,zoom_out,box_zoom,undo,redo,reset,tap,save,box_select,"
+    TOOLS="pan,wheel_zoom,box_zoom,reset,save,"
 
     i=1
     for st in alltraces:
@@ -126,8 +130,8 @@ def bokeh_plot(ev, phaseslist, allsta, arrtimes, alltraces, model, options):
             mytunix.append(tunix)
             mydatetime.append(pd.to_datetime(tunix, unit='s'))
 
-        mydatetime=np.asarray(mydatetime)
-        mytunix=np.asarray(mytunix)
+        mydatetime=asarray(mydatetime)
+        mytunix=asarray(mytunix)
 
         #print type(st.times()[0]), type(mydatetime[0])
     
@@ -137,10 +141,15 @@ def bokeh_plot(ev, phaseslist, allsta, arrtimes, alltraces, model, options):
         df = pd.DataFrame(st.data,mydatetime,columns=['counts'])
         df['tunix']=mytunix
 
+        #title=allsta[st.stats.station]
+        title=st.stats.station
+        title="EVID %d - M%3.1f %s on %s (Lat: %.2f; Lon: %.2f; Z: %dkm)" % (ev.evid,ev.mag,ev.region,str(ev.OTutc)[0:21],ev.lat,ev.lon,ev.depth)
+        streamcode="%s_%s:%s:%s" % (st.stats.network, st.stats.station, st.stats.location, st.stats.channel)
+        title="%s (%.1f degrees ; %d km ; Azim %d) - Filter [%.1f-%.1f Hz]" % (streamcode,allsta[st.stats.station].epidist_deg, int(allsta[st.stats.station].epidist_km), allsta[st.stats.station].azimuth, float(options.freqmin),float(options.freqmax))
         if (i>1):
-            p = figure(plot_width=1200, plot_height=250, x_axis_type="datetime",x_range=x_range)
+            p = figure(title=title,tools=TOOLS,plot_width=1200, plot_height=300, x_axis_type="datetime",x_range=x_range)
         else:
-            p = figure(plot_width=1200, plot_height=250, x_axis_type="datetime")
+            p = figure(title=title,tools=TOOLS,plot_width=1200, plot_height=300, x_axis_type="datetime")
         #p.line(df.index, df['counts'], color='navy', alpha=0.5)
         p.line(mydatetime, df['counts'], color='navy', alpha=0.5)
         figs.append(p)
@@ -156,7 +165,7 @@ def bokeh_plot(ev, phaseslist, allsta, arrtimes, alltraces, model, options):
             months=["%d/%m/%Y"],
             years=["%d/%m/%Y"],
         )
-        p.xaxis.major_label_orientation = np.pi/4
+        p.xaxis.major_label_orientation = pi/4
         if (i==1):
             x_range=p.x_range
             y_range=p.y_range
@@ -165,5 +174,5 @@ def bokeh_plot(ev, phaseslist, allsta, arrtimes, alltraces, model, options):
 
     output_file("rasp.html")
     
-    show (column(figs))
+    save (column(figs))
 
