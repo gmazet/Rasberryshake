@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 import matplotlib.dates as dates
 import datetime
-from myutils import DATADIR
+from myutils import DATADIR, TIMESTAMP_TO_DATETIME
 
 
 def matplotlib_plot(ev, phaseslist, allsta, arrtimes, alltraces, model, options):
