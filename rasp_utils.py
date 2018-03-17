@@ -2,7 +2,8 @@ from myutils import *
 
 my_stations=['R9F1B','RE4C0','R57C7','R0B29','RA3B7']
 my_stations=['R9F1B','R0B29','RA3B7']
-my_stations=['R9F1B','R57C7']
+my_stations=['R9F1B','RDF31','R57C7','R4203']
+my_stations=['R9F1B','RDF31']
 
 NODATA=('R6E96','R052F','R1FBA','RB511','SFD6B', 'RA70D','R9DA3','R5661','RE7F9','R9DBD','R3F3B','ILLF')
 
@@ -17,7 +18,7 @@ HOST7="caps.raspberryshakedata.com"
 HOST8="fdsnws.raspberryshakedata.com"
 
 BEFORE=10
-myradius=3.0
+myradius=10.0
 
 #-------------------------------------------------------------------
 def counts2Amp (c): #Only for Raspberryshake data (not reliable)
@@ -53,21 +54,22 @@ def build_station_list(ev,provider="resif"):
     else:
         from obspy.clients.fdsn import RoutingClient,Client
         #client=RoutingClient("iris-federator")
-        client=RoutingClient("eida-routing")
-        inv = client.get_stations( channel="HHZ", starttime=ev.OTutc, endtime=ev.OTutc, latitude=ev.lat, level="channel", longitude=ev.lon, maxradius=myradius, includerestricted=False, includeavailability=True) 
-        print inv
+        #client=RoutingClient("eida-routing")
+        client=Client(provider)
+        inv = client.get_stations( channel="HHZ", starttime=ev.OTutc, endtime=ev.OTutc, latitude=ev.lat, level="channel", longitude=ev.lon, maxradius=myradius, includerestricted=False)
+        #print inv
 
         ALLCHAN=inv.get_contents()['channels']
         for c in ALLCHAN:
             sta=req_station()
             sta.network,sta.name,sta.location,sta.channel=c.split(".")
-            print sta.network,sta.name,sta.location,sta.channel
             sta.coord= inv.get_coordinates(c,ev.OTutc)
             sta.lat=sta.coord["latitude"]
             sta.lon=sta.coord["longitude"]
             sta.elevation=sta.coord["elevation"]
             sta.get_epidist(ev.lat,ev.lon)
-            sta.slserver=HOST2
+            print sta.network,sta.name,sta.location,sta.channel, sta.coord, sta.epidist_deg
+            sta.slserver=""
             ALLSTATIONS.append((sta.network, sta.name, sta.location, sta.channel, sta.lat, sta.lon, sta.elevation, sta.slserver,sta.epidist_deg,sta.azimuth))
             i+=1
 

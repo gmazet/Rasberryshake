@@ -1,8 +1,4 @@
 from optparse import OptionParser
-from myutils import *
-from rasp_utils import *
-from fdsn import *
-from plot import *
 
 ########################
 THISEVID=633319 #Delaware
@@ -17,7 +13,7 @@ THISEVID=639343 # San Francisco
 #----------------------------------------------------------------
 def MyOptParser(parser):
     parser.add_option("--evid", action="store", dest="evid", help="Earthquake EVID")
-    parser.add_option("--otime", action="store", dest="otime", help="Earthquake origin time '%Y-%m-%dT%H%M%S.%fZ' (if no EVID)")
+    parser.add_option("--otime", action="store", dest="otime", help="Earthquake origin time '%Y-%m-%dT%H:%M:%S.%fZ' (if no EVID)")
     parser.add_option("--lat", action="store", dest="latitude", help="Epicenter latitude (if no EVID)")
     parser.add_option("--lon", action="store", dest="longitude", help="Epicenter longitude (if no EVID)")
     parser.add_option("--depth", action="store", dest="depth", default=2.0, help="Hypocenter depth (if no EVID, optional)")
@@ -31,6 +27,7 @@ def MyOptParser(parser):
     parser.add_option("--section", action="store_true", dest="section", default=False, help="Section plot")
     parser.add_option("--mysta", action="store_true", dest="mysta", default=False, help="Request custom list of stations")
     parser.add_option("--provider", action="store", dest="provider", default="resif", help="Data provider [resif]")
+    parser.add_option("--bokeh", action="store_true", dest="bokeh", default=False, help="Plot with Bokeh (html output)")
     parser.add_option("--counts", action="store", dest="counts", default=0, help="peak-peak amplitude read as counts on the Rasp sensor")
     (options, args) = parser.parse_args(args=None, values=None)
     return options
@@ -44,6 +41,10 @@ except:
 
 
 #-------------------------------------------------------------------
+from myutils import *
+from rasp_utils import *
+from fdsn import *
+from plot import *
     
 if (MyOptions.evid != None):
     ev=myEVID()
@@ -97,6 +98,7 @@ else:
     try:
         evid=0
         ev=myEVID()
+        ev.evid=evid
         ev.lat,ev.lon,ev.depth, ev.mag, ev.OT =  latitude, longitude, depth, magnitude, otime
         ev.region = ""
         oritime=datetime.datetime.strptime(ev.OT, '%Y-%m-%dT%H:%M:%S.%fZ')
@@ -168,8 +170,8 @@ else:
 
 CLOSE_STATIONS,MY_STATIONS=build_station_list(ev,provider)
 
-MAXDIST=CLOSE_STATIONS['epidist_deg'][maxnbsta-1]
-print "MAXDIST=%.1f degrees" % MAXDIST
+#MAXDIST=CLOSE_STATIONS['epidist_deg'][maxnbsta-1]
+#print "MAXDIST=%.1f degrees" % MAXDIST
 
 if (MyOptions.mysta):
     print "Request only my selection of station..."
@@ -178,6 +180,9 @@ if (MyOptions.mysta):
 else:
     phaseslist,allsta,arrtimes,alltraces=get_data(CLOSE_STATIONS,ev,model, MyOptions, maxnbsta, provider)
 
-matplotlib_plot(ev,phaseslist, allsta,arrtimes, alltraces, model, MyOptions)
-#bokeh_plot(ev,phaseslist, allsta,arrtimes, alltraces, model, MyOptions)
+if (MyOptions.bokeh):
+    bokeh_plot(ev,phaseslist, allsta,arrtimes, alltraces, model, MyOptions)
+else:
+    matplotlib_plot(ev,phaseslist, allsta,arrtimes, alltraces, model, MyOptions)
+
 

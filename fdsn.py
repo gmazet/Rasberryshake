@@ -16,7 +16,10 @@ def get_data(listofstations, event, model, options, maxnbsta=3, provider="resif"
         if (sta.name in NODATA):
             ista-=1
             continue
-        if (sta.network not in ['FR','AM']):
+        if ((options.provider=='resif') & (sta.network not in ['FR'])):
+            ista-=1
+            continue
+        if ((options.provider=='rasp') & (sta.network not in ['AM'])):
             ista-=1
             continue
 
@@ -125,7 +128,6 @@ def get_data(listofstations, event, model, options, maxnbsta=3, provider="resif"
         if ((options.freqmin == None) & (options.freqmax == None)):
             freqmin=0.0
             freqmax=25.0
-            #st.filter("highpass", freq=freqmin)
         elif ((options.freqmin != None) & (options.freqmax == None)):
             freqmin=float(options.freqmin)
             freqmax=25
