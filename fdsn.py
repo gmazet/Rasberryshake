@@ -1,6 +1,6 @@
 from rasp_utils import *
 
-def get_data(listofstations, event, model, options, maxnbsta=3):
+def get_data(listofstations, event, model, options, maxnbsta=3, provider="resif"):
     allsta={}
     arrtimes={}
     alltraces=Stream()
@@ -16,13 +16,19 @@ def get_data(listofstations, event, model, options, maxnbsta=3):
         if (sta.name in NODATA):
             ista-=1
             continue
+        if ((options.provider=='resif') & (sta.network not in ['FR'])):
+            ista-=1
+            continue
+        if ((options.provider=='rasp') & (sta.network not in ['AM'])):
+            ista-=1
+            continue
 
         sta.epidist_km=deg2km*sta.epidist_deg
 
         outseedfile="%s/%d.%s_%s_%s_%s.%s.mseed" % (DATADIR,event.evid,sta.network,sta.name,sta.location,sta.channel,event.oritime)
 
         print ""
-        print "== Request %s (%d/%d)" % (sta.name,ista,maxnbsta)
+        print "== Request %s %s %s %s (%d/%d)" % (sta.network,sta.name,sta.location,sta.channel,ista,maxnbsta)
         allsta[sta.name]=sta
 
         if (event.depth<0):
@@ -47,12 +53,10 @@ def get_data(listofstations, event, model, options, maxnbsta=3):
 
         if ((not os.path.exists(outseedfile)) | (options.force)):
             try:
-                if (sta.slserver=="fdsnws.raspberryshakedata.com"):
-                    SLC = FDSN("http://fdsnws.raspberryshakedata.com", timeout=5)
-                
+                if (options.provider=="rasp"):
+                    FDSN_CLIENT = FDSN("http://%s" % (sta.slserver), timeout=5)
                 else:
-                    print ">> SL %s" % sta.slserver
-                    SLC=SL(server=sta.slserver,timeout=5)
+                    FDSN_CLIENT = FDSN(provider.upper(), timeout=5)
             except:
                 ista-=1
                 continue
@@ -64,16 +68,16 @@ def get_data(listofstations, event, model, options, maxnbsta=3):
                 if (len(arrivals)>0):
                     AT=event.OTutc+arrivals[0].time
                 else:
-                    print ("No theoretical wave found")
+                    print ("    No theoretical wave found")
                     AT=event.OTutc
 
             t1 = AT - BEFORE
             t2 = t1 + float(options.sig_length)
 
             try:
-                st = SLC.get_waveforms(sta.network, sta.name, sta.location, sta.channel, t1, t2)
+                st = FDSN_CLIENT.get_waveforms(sta.network, sta.name, sta.location, sta.channel, t1, t2)
             except:
-                print "Can't find data for station %s" % sta.name
+                print (" Can't find data for station %s" % sta.name)
                 ista-=1
                 continue
 
@@ -124,7 +128,6 @@ def get_data(listofstations, event, model, options, maxnbsta=3):
         if ((options.freqmin == None) & (options.freqmax == None)):
             freqmin=0.0
             freqmax=25.0
-            #st.filter("highpass", freq=freqmin)
         elif ((options.freqmin != None) & (options.freqmax == None)):
             freqmin=float(options.freqmin)
             freqmax=25

@@ -1,8 +1,4 @@
 from optparse import OptionParser
-from myutils import *
-from rasp_utils import *
-from fdsn import *
-from plot import *
 
 ########################
 THISEVID=633319 #Delaware
@@ -17,19 +13,21 @@ THISEVID=639343 # San Francisco
 #----------------------------------------------------------------
 def MyOptParser(parser):
     parser.add_option("--evid", action="store", dest="evid", help="Earthquake EVID")
-    parser.add_option("--otime", action="store", dest="otime", help="Earthquake origin time '%Y-%m-%dT%H%M%S.%fZ' (if no EVID)")
+    parser.add_option("--otime", action="store", dest="otime", help="Earthquake origin time '%Y-%m-%dT%H:%M:%S.%fZ' (if no EVID)")
     parser.add_option("--lat", action="store", dest="latitude", help="Epicenter latitude (if no EVID)")
     parser.add_option("--lon", action="store", dest="longitude", help="Epicenter longitude (if no EVID)")
-    parser.add_option("--depth", action="store", dest="depth", default=2.0, help="Hypocenter depth (if no evid, optional)")
-    parser.add_option("--mag", action="store", dest="magnitude", default=2.0, help="Earthquake magnitude (if no evid, optional)")
+    parser.add_option("--depth", action="store", dest="depth", default=2.0, help="Hypocenter depth (if no EVID, optional)")
+    parser.add_option("--mag", action="store", dest="magnitude", default=2.0, help="Earthquake magnitude (if no EVID, optional)")
     parser.add_option("--length", action="store", dest="sig_length", default=120, help="Length of the signal to show in seconds [120]")
     parser.add_option("--fmin", action="store", dest="freqmin", help="Bandpass low frequency [0.5]")
     parser.add_option("--fmax", action="store", dest="freqmax", help="Bandpass high frequency [10.0]")
-    parser.add_option("--ampmax", action="store", dest="ampmax", default=10000.0, help="Maximum amplitude to show [5000]")
+    parser.add_option("--ampmax", action="store", dest="ampmax", default=1000000.0, help="Maximum amplitude to show [1e+6]")
     parser.add_option("--nbsta", action="store", dest="maxnbsta", default=3, help="Nb stations to show [3]")
     parser.add_option("--force", action="store_true", dest="force", default=False, help="Force requesting data instead of reading local miniseed file")
-    parser.add_option("--fr", action="store_true", dest="fr", default=False, help="Take French stations only")
-    parser.add_option("--section", action="store_true", dest="section", default=False, help="Show section")
+    parser.add_option("--section", action="store_true", dest="section", default=False, help="Section plot")
+    parser.add_option("--mysta", action="store_true", dest="mysta", default=False, help="Request custom list of stations")
+    parser.add_option("--provider", action="store", dest="provider", default="resif", help="Data provider [resif]")
+    parser.add_option("--bokeh", action="store_true", dest="bokeh", default=False, help="Plot with Bokeh (html output)")
     parser.add_option("--counts", action="store", dest="counts", default=0, help="peak-peak amplitude read as counts on the Rasp sensor")
     (options, args) = parser.parse_args(args=None, values=None)
     return options
@@ -43,6 +41,10 @@ except:
 
 
 #-------------------------------------------------------------------
+from myutils import *
+from rasp_utils import *
+from fdsn import *
+from plot import *
     
 if (MyOptions.evid != None):
     ev=myEVID()
@@ -96,6 +98,7 @@ else:
     try:
         evid=0
         ev=myEVID()
+        ev.evid=evid
         ev.lat,ev.lon,ev.depth, ev.mag, ev.OT =  latitude, longitude, depth, magnitude, otime
         ev.region = ""
         oritime=datetime.datetime.strptime(ev.OT, '%Y-%m-%dT%H:%M:%S.%fZ')
@@ -133,17 +136,12 @@ else:
 if (MyOptions.ampmax != None):
     ampmax=float(MyOptions.ampmax)
 else:
-    ampmax=10000.0
+    ampmax=1000000.0
 
 if (MyOptions.maxnbsta != None):
     maxnbsta=int(MyOptions.maxnbsta)
 else:
     maxnbsta=3
-
-CLOSE_STATIONS,FR_STATIONS=build_station_book(ev)
-
-MAXDIST=CLOSE_STATIONS['epidist_deg'][maxnbsta-1]
-print "MAXDIST=%.1f degrees" % MAXDIST
 
 #-------------------------------------
 print "===================================="
@@ -165,13 +163,26 @@ from obspy.core import read, AttribDict
 from obspy.taup import TauPyModel
 model=TauPyModel(model='ak135')
 
-from obspy.clients.fdsn import Client as FDSN
-if (MyOptions.fr):
-    maxnbsta=min(len(FR_STATIONS),maxnbsta)
-    phaseslist,allsta,arrtimes,alltraces=get_data(FR_STATIONS,ev,model, MyOptions, maxnbsta)
+if (MyOptions.provider):
+    provider=MyOptions.provider
 else:
-    phaseslist,allsta,arrtimes,alltraces=get_data(CLOSE_STATIONS,ev,model, MyOptions, maxnbsta)
+    provider="resif"
 
-#matplotlib_plot(ev,phaseslist, allsta,arrtimes, alltraces, model, MyOptions)
-bokeh_plot(ev,phaseslist, allsta,arrtimes, alltraces, model, MyOptions)
+CLOSE_STATIONS,MY_STATIONS=build_station_list(ev,provider)
+
+#MAXDIST=CLOSE_STATIONS['epidist_deg'][maxnbsta-1]
+#print "MAXDIST=%.1f degrees" % MAXDIST
+
+if (MyOptions.mysta):
+    print "Request only my selection of station..."
+    maxnbsta=min(len(MY_STATIONS),maxnbsta)
+    phaseslist,allsta,arrtimes,alltraces=get_data(MY_STATIONS,ev,model, MyOptions, maxnbsta, provider)
+else:
+    phaseslist,allsta,arrtimes,alltraces=get_data(CLOSE_STATIONS,ev,model, MyOptions, maxnbsta, provider)
+
+if (MyOptions.bokeh):
+    bokeh_plot(ev,phaseslist, allsta,arrtimes, alltraces, model, MyOptions)
+else:
+    matplotlib_plot(ev,phaseslist, allsta,arrtimes, alltraces, model, MyOptions)
+
 
